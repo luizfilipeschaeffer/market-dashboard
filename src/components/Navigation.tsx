@@ -10,7 +10,7 @@ interface NavigationProps {
 
 export function Navigation({ currentPage, onNavigateToHome, onNavigateToBackups }: NavigationProps) {
   return (
-    <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <nav className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo/Title */}

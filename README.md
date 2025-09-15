@@ -30,7 +30,37 @@ npm install
 npm run dev
 ```
 
-4. Abra [http://localhost:5173](http://localhost:5173) no seu navegador.
+4. Configure as variáveis de ambiente:
+```bash
+# Copie o arquivo de exemplo
+cp .env.example .env
+
+# Edite o arquivo .env com suas configurações
+```
+
+5. Abra [http://localhost:5173](http://localhost:5173) no seu navegador.
+
+## ⚙️ Configuração
+
+### Variáveis de Ambiente
+
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+
+```env
+# API Configuration
+VITE_API_BASE_URL=http://192.168.60.37:8080
+VITE_API_TIMEOUT=30000
+VITE_API_RETRIES=3
+
+# Development Configuration
+VITE_APP_NAME=Market Dashboard
+VITE_APP_VERSION=1.0.0
+```
+
+**Variáveis obrigatórias:**
+- `VITE_API_BASE_URL`: URL base da API de backups
+- `VITE_API_TIMEOUT`: Timeout das requisições em milissegundos (padrão: 30000)
+- `VITE_API_RETRIES`: Número de tentativas em caso de falha (padrão: 3)
 
 ## 🛠️ Scripts Disponíveis
 
