@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { DataTable } from '@/components/ui/data-table'
-import { PageWrapper } from '@/components/PageWrapper'
+import { PageWrapper } from '@/components/layout/PageWrapper'
 import { ClientFormPage } from '@/pages/ClientFormPage'
+import { ApiValidationSplash } from '@/components/ApiValidationSplash'
 import { 
   Plus, 
   Download, 
@@ -56,72 +57,71 @@ export function ClientsPage({ onLoadStart, onLoadComplete }: ClientsPageProps) {
   const [hasData, setHasData] = useState(false)
   const [showForm, setShowForm] = useState(false)
   const [selectedClientId, setSelectedClientId] = useState<string | undefined>(undefined)
+  const [isApiValidating, setIsApiValidating] = useState(true)
+  const [isApiAvailable, setIsApiAvailable] = useState<boolean | null>(null)
 
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        setError(null)
-        onLoadStart?.()
-        const [clientsData, statsData, backupData] = await Promise.all([
-          api.clients.getAll(),
-          api.clients.getStats(),
-          api.backups.getAll()
-        ])
-        
-        // Verificar se há dados válidos
-        const hasValidClients = clientsData && clientsData.length > 0
-        const hasValidStats = statsData && statsData.totalClients > 0
-        const hasValidBackups = backupData && backupData.length > 0
-        
-        if (!hasValidClients && !hasValidStats && !hasValidBackups) {
-          setError('Nenhum dado encontrado. Verifique se a API está funcionando corretamente.')
-          setHasData(false)
-        } else {
-          setError(null)
-          setHasData(true)
-        }
-        
-        // Adicionar informações de backup aos clientes
-        const clientsWithBackup: ClientWithBackup[] = clientsData.map(client => {
-          const clientBackups = backupData.filter(b => b.client_id === client.client_id)
-          const lastBackup = clientBackups.length > 0 
-            ? clientBackups.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].date
-            : 'N/A'
-          
-          const totalBackups = clientBackups.length
-          const successfulBackups = clientBackups.filter(b => b.status === 'success').length
-          const successRate = totalBackups > 0 ? (successfulBackups / totalBackups) * 100 : 0
-          
-          return {
-          ...client,
-            lastBackup,
-            totalBackups,
-            successRate: Math.round(successRate * 10) / 10
-          }
-        })
-        
-        setClients(clientsWithBackup)
-        setStats(statsData)
-      } catch (error) {
-        console.error('Erro ao carregar dados dos clientes:', error)
-        const code = generateErrorCode(error as Error)
-        const errorInfo = getErrorCode(code)
-        setErrorCode(code)
-        setError(errorInfo?.title || 'Erro ao conectar com a API. Verifique sua conexão e tente novamente.')
-        setHasData(false)
-      } finally {
-        setLoading(false)
-        onLoadComplete?.()
-      }
+  // Callbacks para validação da API
+  const handleApiValidationComplete = (isAvailable: boolean) => {
+    setIsApiAvailable(isAvailable)
+    setIsApiValidating(false)
+    
+    if (isAvailable) {
+      // Se a API está disponível, carregar os dados
+      loadData()
     }
+  }
 
-    loadData()
-  }, [onLoadStart, onLoadComplete])
+  // handleApiRetry removido - agora é gerenciado pelo splash
+
+  const loadData = async () => {
+    try {
+      setError(null)
+      // Não chamar onLoadStart aqui para evitar TransitionSplash duplicado
+      // onLoadStart?.()
+      const [clientsWithBackupData, statsData] = await Promise.all([
+        api.backups.getClientsWithBackupStatus(),
+        api.clients.getStats()
+      ])
+      
+      // Verificar se há dados válidos
+      const hasValidClients = clientsWithBackupData && clientsWithBackupData.length > 0
+      const hasValidStats = statsData && statsData.totalClients > 0
+      
+      if (!hasValidClients && !hasValidStats) {
+        setError('Nenhum dado encontrado. Verifique se a API está funcionando corretamente.')
+        setHasData(false)
+      } else {
+        setError(null)
+        setHasData(true)
+      }
+      
+      // Mapear dados para o formato esperado pela interface
+      const clientsWithBackup: ClientWithBackup[] = clientsWithBackupData.map(client => ({
+        ...client,
+        totalBackups: 0, // Será calculado se necessário
+        successRate: client.successRate || 0
+      }))
+      
+      setClients(clientsWithBackup)
+      setStats(statsData)
+    } catch (error) {
+      console.error('Erro ao carregar dados dos clientes:', error)
+      const errorCode = generateErrorCode(error as Error)
+      setErrorCode(errorCode)
+      setError('Erro ao conectar com a API. Verifique sua conexão e tente novamente.')
+      setHasData(false)
+    } finally {
+      setLoading(false)
+      onLoadComplete?.()
+    }
+  }
+
+  // useEffect removido - loadData agora é chamado apenas após validação da API
 
   const getStatusBadge = (status: string) => {
     const variants = {
-      active: 'bg-green-100 text-green-800 border-green-200',
-      inactive: 'bg-red-100 text-red-800 border-red-200',
+      active: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800',
+      inactive: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800',
       pending: 'bg-yellow-100 text-yellow-800 border-yellow-200'
     }
     const labels = {
@@ -139,7 +139,7 @@ export function ClientsPage({ onLoadStart, onLoadComplete }: ClientsPageProps) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active':
-        return <CheckCircle className="h-4 w-4 text-green-600" />
+        return <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
       case 'inactive':
         return <AlertCircle className="h-4 w-4 text-red-600" />
       case 'pending':
@@ -160,24 +160,19 @@ export function ClientsPage({ onLoadStart, onLoadComplete }: ClientsPageProps) {
         setShowForm(true)
         break
       case 'activate':
-        console.log('Ativar cliente:', client.name)
         // Implementar ativação do cliente
         break
       case 'deactivate':
-        console.log('Desativar cliente:', client.name)
         // Implementar desativação do cliente
         break
       case 'settings':
-        console.log('Configurações do cliente:', client.name)
         // Implementar configurações do cliente
         break
       case 'copy':
         navigator.clipboard.writeText(client.client_id)
-        console.log('ID copiado:', client.client_id)
         // Implementar notificação de cópia
         break
       case 'delete':
-        console.log('Excluir cliente:', client.name)
         // Implementar exclusão do cliente
         break
       default:
@@ -308,6 +303,58 @@ export function ClientsPage({ onLoadStart, onLoadComplete }: ClientsPageProps) {
     },
   ]
 
+  // Mostrar splash com validação da API se ainda estiver validando
+  if (isApiValidating) {
+    return (
+      <ApiValidationSplash 
+        onComplete={handleApiValidationComplete}
+        pageName="Gestão de Clientes"
+      />
+    )
+  }
+
+  // Mostrar erro se a API não estiver disponível
+  if (isApiAvailable === false) {
+    return (
+      <PageWrapper>
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+          <div className="text-center space-y-4 max-w-md">
+            <div className="w-16 h-16 mx-auto bg-destructive/10 dark:bg-destructive/20 rounded-full flex items-center justify-center">
+              <XCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                API não disponível
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Não foi possível conectar com a API após múltiplas tentativas.
+              </p>
+              
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>Possíveis causas:</p>
+                <ul className="list-disc list-inside space-y-1">
+                  <li>Servidor da API está offline</li>
+                  <li>Problema de conectividade de rede</li>
+                  <li>Firewall bloqueando a conexão</li>
+                  <li>URL da API incorreta</li>
+                </ul>
+              </div>
+            </div>
+            <Button 
+              onClick={() => {
+                setIsApiValidating(true)
+                setIsApiAvailable(null)
+              }} 
+              variant="outline"
+              className="mt-4"
+            >
+              Tentar Novamente
+            </Button>
+          </div>
+        </div>
+      </PageWrapper>
+    )
+  }
 
   if (loading) {
     return (
@@ -328,21 +375,21 @@ export function ClientsPage({ onLoadStart, onLoadComplete }: ClientsPageProps) {
     
     return (
       <PageWrapper>
-        <div className="flex items-center justify-center h-96">
+        <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
           <div className="text-center space-y-4 max-w-md">
-            <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">
-              <XCircle className="h-8 w-8 text-red-600" />
+            <div className="w-16 h-16 mx-auto bg-destructive/10 dark:bg-destructive/20 rounded-full flex items-center justify-center">
+              <XCircle className="h-8 w-8 text-destructive" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              <h3 className="text-lg font-semibold text-foreground mb-2">
                 {error ? 'Erro ao carregar clientes' : 'Nenhum cliente encontrado'}
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-muted-foreground mb-4">
                 {error || 'Não há clientes cadastrados no momento.'}
               </p>
               
               {errorCode && errorInfo && (
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                <div className="mb-4 p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center justify-center gap-2 mb-2">
                     <Badge className={getErrorSeverityColor(errorInfo.severity)}>
                       {errorInfo.severity.toUpperCase()}
@@ -354,21 +401,21 @@ export function ClientsPage({ onLoadStart, onLoadComplete }: ClientsPageProps) {
                       {errorCode}
                     </Badge>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">
+                  <p className="text-sm text-muted-foreground mb-2">
                     {errorInfo.description}
                   </p>
                   <Button 
                     variant="link" 
                     size="sm"
                     onClick={() => window.open(`/faq#${errorCode}`, '_blank')}
-                    className="text-blue-600 hover:text-blue-800"
+                    className="text-primary hover:text-primary/80"
                   >
                     Ver soluções detalhadas →
                   </Button>
                 </div>
               )}
               
-              <div className="space-y-2 text-sm text-gray-500">
+              <div className="space-y-2 text-sm text-muted-foreground">
                 <p>Possíveis causas:</p>
                 <ul className="list-disc list-inside space-y-1">
                   <li>API não está respondendo</li>
@@ -402,16 +449,15 @@ export function ClientsPage({ onLoadStart, onLoadComplete }: ClientsPageProps) {
   }
 
   return (
-    <PageWrapper>
+    <PageWrapper pageTitle="Gestão de Clientes">
       <div className="space-y-6">
-        {/* Header */}
+        {/* Subtitle */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-foreground">Gestão de Clientes</h1>
           <p className="text-muted-foreground">Gerencie informações e status dos clientes do sistema</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total de Clientes</CardTitle>
@@ -426,24 +472,13 @@ export function ClientsPage({ onLoadStart, onLoadComplete }: ClientsPageProps) {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-600" />
+              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-600">{stats.activeClients}</div>
+              <div className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.activeClients}</div>
               <p className="text-xs text-muted-foreground">
                 {stats.totalClients > 0 ? ((stats.activeClients / stats.totalClients) * 100).toFixed(1) : 0}% do total
               </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-              <AlertCircle className="h-4 w-4 text-yellow-600" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{stats.pendingClients}</div>
-              <p className="text-xs text-muted-foreground">Aguardando ativação</p>
             </CardContent>
           </Card>
 

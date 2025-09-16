@@ -342,7 +342,7 @@ export const settingsAPI = {
     } catch (error) {
       console.warn('Erro ao conectar com API real, usando dados locais:', error)
       // Fallback para dados locais
-      console.log('Configurações atualizadas (local):', updates)
+      console.log('Atualizando configurações localmente:', updates)
       return true
     }
   }

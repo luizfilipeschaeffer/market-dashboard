@@ -1,6 +1,6 @@
 // Utilitário para processar dados CSV e converter para formato da API
 
-import { Cliente, Backup, BackupRequestDTO } from '@/types/api'
+import { BackupRequestDTO } from '@/types/api'
 
 export interface CsvRow {
   id: string
@@ -86,7 +86,6 @@ export function parseCsvRow(row: CsvRow): ProcessedClient | null {
  */
 export function processCsvData(csvData: string): ProcessedClient[] {
   const lines = csvData.split('\n').filter(line => line.trim() !== '')
-  const headers = lines[0].split(',').map(h => h.trim())
   
   const processedClients: ProcessedClient[] = []
   

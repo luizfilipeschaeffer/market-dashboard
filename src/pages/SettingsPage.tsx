@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { PageWrapper } from '@/components/PageWrapper'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { PageWrapper } from '@/components/layout/PageWrapper'
 import { 
   Settings, 
   Save, 
@@ -13,7 +14,8 @@ import {
   Shield, 
   HardDrive,
   Server,
-  Loader2
+  Loader2,
+  Clock
 } from 'lucide-react'
 import { api } from '@/services/api'
 
@@ -27,6 +29,8 @@ export function SettingsPage({ onLoadStart, onLoadComplete }: SettingsPageProps)
   const [settings, setSettings] = useState<Record<string, any>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [showModal, setShowModal] = useState(true)
+  const [timer, setTimer] = useState(10)
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -45,6 +49,23 @@ export function SettingsPage({ onLoadStart, onLoadComplete }: SettingsPageProps)
     loadSettings()
   }, [onLoadStart, onLoadComplete])
 
+  // Timer para fechar o modal automaticamente
+  useEffect(() => {
+    if (showModal && timer > 0) {
+      const interval = setInterval(() => {
+        setTimer(prev => {
+          if (prev <= 1) {
+            setShowModal(false)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+
+      return () => clearInterval(interval)
+    }
+  }, [showModal, timer])
+
   const handleSettingChange = (key: string, value: any) => {
     setSettings(prev => ({
       ...prev,
@@ -57,7 +78,7 @@ export function SettingsPage({ onLoadStart, onLoadComplete }: SettingsPageProps)
     try {
       const success = await api.settings.update(settings)
       if (success) {
-        console.log('Configurações salvas com sucesso')
+        
         // Aqui poderia mostrar uma notificação de sucesso
       }
     } catch (error) {
@@ -87,11 +108,44 @@ export function SettingsPage({ onLoadStart, onLoadComplete }: SettingsPageProps)
   }
 
   return (
-    <PageWrapper>
-      <div className="space-y-6">
-        {/* Header */}
+    <>
+      {/* Modal de Desenvolvimento */}
+      <Dialog open={showModal} onOpenChange={setShowModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-amber-100 dark:bg-amber-900/20 rounded-lg">
+                <Clock className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg">Em Desenvolvimento</DialogTitle>
+                <DialogDescription className="text-sm text-muted-foreground">
+                  Informamos que os controles desta tela ainda estão em desenvolvimento, e portanto não possuem ações efetivas
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          
+          <div className="flex items-center justify-between pt-4">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              <span>Fechando automaticamente em {timer}s</span>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => setShowModal(false)}
+            >
+              Entendi
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <PageWrapper pageTitle="Configurações do Sistema">
+        <div className="space-y-6">
+        {/* Subtitle */}
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-foreground">Configurações do Sistema</h1>
           <p className="text-muted-foreground">Gerencie as configurações gerais, backups e notificações do sistema</p>
         </div>
 
@@ -170,8 +224,8 @@ export function SettingsPage({ onLoadStart, onLoadComplete }: SettingsPageProps)
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <HardDrive className="h-6 w-6 text-blue-600" />
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <HardDrive className="h-6 w-6 text-primary" />
               </div>
               <div>
                 <CardTitle>Configurações de Backup</CardTitle>
@@ -247,8 +301,8 @@ export function SettingsPage({ onLoadStart, onLoadComplete }: SettingsPageProps)
         <Card>
           <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Bell className="h-6 w-6 text-green-600" />
+              <div className="p-2 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                <Bell className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div>
                 <CardTitle>Notificações</CardTitle>
@@ -457,5 +511,6 @@ export function SettingsPage({ onLoadStart, onLoadComplete }: SettingsPageProps)
         </div>
       </div>
     </PageWrapper>
+    </>
   )
 }

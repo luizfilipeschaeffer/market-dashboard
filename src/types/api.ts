@@ -162,7 +162,7 @@ export interface ApiConfig {
 }
 
 export const DEFAULT_API_CONFIG: ApiConfig = {
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://192.168.60.37:8080',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://market-externo-dashboard-api.onrender.com',
   timeout: Number(import.meta.env.VITE_API_TIMEOUT) || 30000,
   retries: Number(import.meta.env.VITE_API_RETRIES) || 3
 }

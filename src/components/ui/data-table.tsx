@@ -13,7 +13,7 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, Filter, Download } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -36,12 +37,22 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   onRowClick?: (row: TData) => void
+  statusFilter?: string
+  onStatusFilterChange?: (value: string) => void
+  isStatusFilterDisabled?: boolean
+  onExport?: () => void
+  isExportDisabled?: boolean
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   onRowClick,
+  statusFilter,
+  onStatusFilterChange,
+  isStatusFilterDisabled = false,
+  onExport,
+  isExportDisabled = false,
 }: DataTableProps<TData, TValue>) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -69,7 +80,7 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="w-full overflow-visible">
-      <div className="flex items-center py-4">
+      <div className="flex items-center py-4 gap-4">
         <Input
           placeholder="Filtrar clientes..."
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
@@ -78,32 +89,66 @@ export function DataTable<TData, TValue>({
           }
           className="max-w-sm"
         />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="ml-auto">
-              Colunas <ChevronDown className="ml-2 h-4 w-4" />
+        <div className="flex items-center gap-2 ml-auto">
+          {statusFilter !== undefined && onStatusFilterChange && (
+            <Select 
+              value={statusFilter} 
+              onValueChange={onStatusFilterChange}
+              disabled={isStatusFilterDisabled}
+            >
+              <SelectTrigger className="w-48">
+                <Filter className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Filtrar classificação" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="excellent">Excelente (95%+)</SelectItem>
+                <SelectItem value="very-good">Muito Bom (85-94%)</SelectItem>
+                <SelectItem value="good">Bom (70-84%)</SelectItem>
+                <SelectItem value="regular">Regular (50-69%)</SelectItem>
+                <SelectItem value="bad">Ruim (25-49%)</SelectItem>
+                <SelectItem value="terrible">Péssimo (&lt;25%)</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                Colunas <ChevronDown className="ml-2 h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {table
+                .getAllColumns()
+                .filter((column) => column.getCanHide())
+                .map((column) => {
+                  return (
+                    <DropdownMenuCheckboxItem
+                      key={column.id}
+                      className="capitalize"
+                      checked={column.getIsVisible()}
+                      onCheckedChange={(value) =>
+                        column.toggleVisibility(!!value)
+                      }
+                    >
+                      {column.id}
+                    </DropdownMenuCheckboxItem>
+                  )
+                })}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {onExport && (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={onExport}
+              disabled={isExportDisabled}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Exportar
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {table
-              .getAllColumns()
-              .filter((column) => column.getCanHide())
-              .map((column) => {
-                return (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                )
-              })}
-          </DropdownMenuContent>
-        </DropdownMenu>
+          )}
+        </div>
       </div>
       <div className="rounded-md border overflow-visible">
         <Table>

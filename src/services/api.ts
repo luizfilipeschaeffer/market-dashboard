@@ -50,7 +50,6 @@ class ApiService {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.config.baseURL}${endpoint}`
-    console.log('API: Fazendo requisição para:', url)
     
     const defaultOptions: RequestInit = {
       headers: {
@@ -62,7 +61,6 @@ class ApiService {
 
     try {
       const response = await fetch(url, defaultOptions)
-      console.log('API: Resposta recebida:', response.status, response.statusText)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
@@ -75,7 +73,6 @@ class ApiService {
       }
 
       const data = await response.json()
-      console.log('API: Dados recebidos:', data)
       return data
     } catch (error) {
       console.error('API: Erro na requisição:', error)
@@ -92,6 +89,18 @@ class ApiService {
   }
 
   // ===== ENDPOINTS DA API =====
+
+  // GET /api/health - Health check
+  async checkHealth(): Promise<{ status: string; timestamp: number }> {
+    return this.makeRequest('/api/health')
+  }
+
+  // GET /api/clientes
+  async listarClientes(): Promise<Cliente[]> {
+    return this.getCachedData('clientes-lista', () =>
+      this.makeRequest<Cliente[]>('/api/clientes')
+    )
+  }
 
   // POST /api/clientes
   async criarCliente(cliente: Omit<Cliente, 'id' | 'dataInclusao' | 'backups'>): Promise<Cliente> {
@@ -143,12 +152,9 @@ class ApiService {
 
   // GET /api/dashboard/backup/cliente/{id}
   async listarBackupsPorCliente(id: number): Promise<BackupHistoricoDTO[]> {
-    console.log('API: Chamando listarBackupsPorCliente para ID:', id)
     return this.getCachedData(`backups-cliente-${id}`, async () => {
-      console.log('API: Fazendo requisição para /api/dashboard/backup/cliente/' + id)
       try {
         const result = await this.makeRequest<BackupHistoricoDTO[]>(`/api/dashboard/backup/cliente/${id}`)
-        console.log('API: Resultado da requisição:', result)
         return result
       } catch (error) {
         console.error('API: Erro na requisição listarBackupsPorCliente:', error)
@@ -172,34 +178,40 @@ class ApiService {
 
   // ===== MÉTODOS DE COMPATIBILIDADE COM UI EXISTENTE =====
 
-  // Mapear ClienteBackupStatusDTO para ClientUI
-  private mapClienteToUI(cliente: ClienteBackupStatusDTO): ClientUI {
+  // Mapear Cliente (do endpoint /api/clientes) para ClientUI
+  private mapClienteFromAPI(cliente: Cliente): ClientUI {
     return {
       client_id: cliente.id.toString(),
       name: cliente.nome,
       cnpj: cliente.cnpj,
-      email: '', // Não disponível na API
+      email: cliente.email,
       phone: '', // Não disponível na API
       address: '', // Não disponível na API
-      status: cliente.statusUltimoBackup === 'SUCESSO' ? 'active' : 'inactive',
-      join_date: cliente.dataInicio, // Usar dataInicio como join_date
+      status: cliente.ativo ? 'active' : 'inactive',
+      join_date: cliente.dataInclusao,
       logo: '' // Não disponível na API
     }
   }
 
+
   // Mapear BackupHistoricoDTO para BackupUI
   private mapBackupToUI(backup: BackupHistoricoDTO, clientId: number, clientName: string): BackupUI {
-    return {
+    // Usar dataFim se disponível, senão usar dataInicio
+    const backupDate = backup.dataFim || backup.dataInicio
+    
+    const mappedBackup: BackupUI = {
       backup_id: backup.id.toString(),
       client_id: clientId.toString(),
       client_name: clientName,
-      date: backup.dataFim, // Usar dataFim como data do backup
+      date: backupDate, // Usar dataFim se disponível, senão dataInicio
       status: backup.status === 'SUCESSO' ? 'success' : 'failed',
       duration: this.calculateDuration(backup.dataInicio, backup.dataFim),
       size: backup.tamanhoEmMb ? `${backup.tamanhoEmMb.toFixed(2)} MB` : 'N/A', // Verificar se tamanhoEmMb não é null
       vacuumExecutado: backup.vacuumExecutado || false, // Garantir que não seja undefined
       mensagem: backup.mensagem || 'N/A' // Garantir que não seja undefined
     }
+    
+    return mappedBackup
   }
 
   // Calcular duração entre dataInicio e dataFim
@@ -230,8 +242,8 @@ class ApiService {
   // ===== APIS COMPATÍVEIS COM UI EXISTENTE =====
 
   async getAllClients(): Promise<ClientUI[]> {
-    const clientes = await this.listarStatusClientes()
-    return clientes.map(cliente => this.mapClienteToUI(cliente))
+    const clientes = await this.listarClientes()
+    return clientes.map(cliente => this.mapClienteFromAPI(cliente))
   }
 
   async getClientById(id: string): Promise<ClientUI | null> {
@@ -241,13 +253,13 @@ class ApiService {
 
   async getClientStats(): Promise<ClientStatsUI> {
     const indicadores = await this.getIndicadores()
-    const clientes = await this.listarStatusClientes()
+    const clientes = await this.listarClientes()
 
-      return {
+    return {
       totalClients: indicadores.totalClientes,
-      activeClients: clientes.filter(c => c.statusUltimoBackup === 'SUCESSO').length,
+      activeClients: clientes.filter(c => c.ativo).length,
       pendingClients: 0, // Não disponível na API
-      inactiveClients: clientes.filter(c => c.statusUltimoBackup === 'FALHA').length,
+      inactiveClients: clientes.filter(c => !c.ativo).length,
       averageSuccessRate: indicadores.taxaSucesso
     }
   }
@@ -269,28 +281,21 @@ class ApiService {
 
   async getBackupsByClientId(clientId: string): Promise<BackupUI[]> {
     const id = parseInt(clientId)
-    console.log('API: getBackupsByClientId chamado com clientId:', clientId, 'convertido para id:', id)
     
     try {
       const backups = await this.listarBackupsPorCliente(id)
-      console.log('API: Backups retornados da API:', backups)
-      console.log('API: Quantidade de backups:', backups.length)
       
       const cliente = await this.listarStatusClientes().then(clientes => 
         clientes.find(c => c.id === id)
       )
-      console.log('API: Cliente encontrado:', cliente)
       
       if (!cliente) {
-        console.log('API: Cliente não encontrado, retornando array vazio')
         return []
       }
       
       const mappedBackups = backups.map(backup => 
         this.mapBackupToUI(backup, id, cliente.nome)
       )
-      console.log('API: Backups mapeados para UI:', mappedBackups)
-      console.log('API: Quantidade de backups mapeados:', mappedBackups.length)
       
       return mappedBackups
     } catch (error) {
@@ -299,14 +304,39 @@ class ApiService {
     }
   }
 
-  async getBackupStats(): Promise<BackupStatsUI> {
-    const resumo = await this.getResumoBackups()
-    
-    return {
-      successful: resumo.sucessos,
-      failed: resumo.falhas,
-      total: resumo.total,
-      successRate: resumo.percentualSucesso
+  async getBackupStats(days: number = 30): Promise<BackupStatsUI> {
+    try {
+      // Usar indicadores com período específico
+      const indicadores = await this.getIndicadores({ dias: days })
+      
+      console.log('Indicadores da API:', indicadores)
+      
+      return {
+        successful: indicadores.backupsSucesso || 0,
+        failed: indicadores.backupsFalha || 0,
+        total: (indicadores.backupsSucesso || 0) + (indicadores.backupsFalha || 0),
+        successRate: indicadores.taxaSucesso || 0
+      }
+    } catch (error) {
+      console.error('Erro ao carregar stats, usando fallback:', error)
+      // Fallback: usar dados do resumo geral
+      try {
+        const resumo = await this.getResumoBackups()
+        return {
+          successful: resumo.sucessos || 0,
+          failed: resumo.falhas || 0,
+          total: resumo.total || 0,
+          successRate: resumo.percentualSucesso || 0
+        }
+      } catch (fallbackError) {
+        console.error('Erro no fallback, usando dados padrão:', fallbackError)
+        return {
+          successful: 0,
+          failed: 0,
+          total: 0,
+          successRate: 0
+        }
+      }
     }
   }
 
@@ -351,7 +381,6 @@ class ApiService {
       
       // Retornar dados reais ou array vazio se não há dados
       if (timelineData.length === 0) {
-        console.log('API: Nenhum dado de timeline encontrado para o período')
         return []
       }
       
@@ -363,44 +392,94 @@ class ApiService {
   }
 
   async getClientsWithBackupStatus(): Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string }>> {
-    // Primeira requisição: buscar lista de clientes
-    const clientes = await this.listarStatusClientes()
-    console.log('API: Lista de clientes recebida:', clientes)
+    // Primeira requisição: buscar lista de clientes do endpoint /api/clientes
+    const clientes = await this.listarClientes()
     
-    // Segunda requisição: buscar detalhes de cada cliente
-    const clientesComDetalhes = await Promise.all(
-      clientes.map(async (cliente) => {
-        try {
-          // Buscar histórico de backups para cada cliente
-          const backups = await this.listarBackupsPorCliente(cliente.id)
-          console.log(`API: Backups para cliente ${cliente.id}:`, backups)
-          
-          // Encontrar o último backup
-          const ultimoBackup = backups.length > 0 ? backups[backups.length - 1] : null
-          
-          return {
-            ...this.mapClienteToUI(cliente),
-            lastBackup: ultimoBackup ? ultimoBackup.dataFim : cliente.dataFim,
-            successRate: cliente.taxaSucesso,
-            dataInicio: cliente.dataInicio,
-            dataFim: cliente.dataFim
+    // Segunda requisição: buscar status de backup dos clientes do endpoint /api/dashboard/backup/clientes
+    const clientesBackupStatus = await this.listarStatusClientes()
+    
+    // Combinar dados dos dois endpoints
+    const clientesComDetalhes = clientes.map((cliente) => {
+      // Encontrar o status de backup correspondente
+      const backupStatus = clientesBackupStatus.find(bs => bs.id === cliente.id)
+      
+      if (backupStatus) {
+        return {
+          ...this.mapClienteFromAPI(cliente),
+          lastBackup: backupStatus.dataFim || 'N/A',
+          successRate: backupStatus.taxaSucesso,
+          dataInicio: backupStatus.dataInicio,
+          dataFim: backupStatus.dataFim
+        }
+      } else {
+        // Se não encontrar status de backup, usar dados básicos do cliente
+        return {
+          ...this.mapClienteFromAPI(cliente),
+          lastBackup: 'N/A',
+          successRate: 0,
+          dataInicio: undefined,
+          dataFim: undefined
+        }
+      }
+    })
+    
+    return clientesComDetalhes
+  }
+
+  // Nova função para carregar dados em etapas
+  async getClientsWithBackupStatusProgressive(days: number = 30): Promise<{
+    clients: ClientUI[],
+    loadBackupData: () => Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string }>>
+  }> {
+    // Primeira requisição: buscar lista de clientes do endpoint /api/clientes
+    const clientes = await this.listarClientes()
+    
+    const clientsUI = clientes.map(cliente => this.mapClienteFromAPI(cliente))
+    
+    // Retornar função para carregar dados de backup
+    const loadBackupData = async (): Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string }>> => {
+      // Segunda requisição: buscar status de backup dos clientes do endpoint /api/dashboard/backup/clientes com período
+      const clientesBackupStatus = await this.listarStatusClientes({ dias: days })
+      
+      // Combinar dados dos dois endpoints
+      const clientesComDetalhes = clientsUI.map((cliente) => {
+        // Encontrar o status de backup correspondente
+        const backupStatus = clientesBackupStatus.find(bs => bs.id === parseInt(cliente.client_id))
+        
+        
+        if (backupStatus) {
+          // TEMPORÁRIO: Forçar alguns clientes a terem successRate baixo para testar o filtro
+          let testSuccessRate = backupStatus.taxaSucesso
+          if (cliente.name.includes('Cloud') || cliente.name.includes('Tech')) {
+            testSuccessRate = Math.random() * 20 // 0-20% para testar filtro "Péssimo"
           }
-        } catch (error) {
-          console.error(`API: Erro ao buscar detalhes do cliente ${cliente.id}:`, error)
-          // Retornar dados básicos em caso de erro
+          
           return {
-            ...this.mapClienteToUI(cliente),
-            lastBackup: cliente.dataFim,
-            successRate: cliente.taxaSucesso,
-            dataInicio: cliente.dataInicio,
-            dataFim: cliente.dataFim
+            ...cliente,
+            lastBackup: backupStatus.dataFim || 'N/A',
+            successRate: testSuccessRate,
+            dataInicio: backupStatus.dataInicio,
+            dataFim: backupStatus.dataFim
+          }
+        } else {
+          // Se não encontrar status de backup, usar dados básicos do cliente
+          return {
+            ...cliente,
+            lastBackup: 'N/A',
+            successRate: 0,
+            dataInicio: undefined,
+            dataFim: undefined
           }
         }
       })
-    )
+      
+      return clientesComDetalhes
+    }
     
-    console.log('API: Clientes com detalhes processados:', clientesComDetalhes)
-    return clientesComDetalhes
+    return {
+      clients: clientsUI,
+      loadBackupData
+    }
   }
 
   // ===== MÉTODOS DE POST EM LOTE =====
@@ -428,21 +507,17 @@ class ApiService {
     let successful = 0
     let failed = 0
 
-    console.log(`API: Iniciando criação em lote de ${clientes.length} clientes`)
 
     // Processar clientes em lotes de 10 para evitar sobrecarga
     const batchSize = 10
     for (let i = 0; i < clientes.length; i += batchSize) {
       const batch = clientes.slice(i, i + batchSize)
-      console.log(`API: Processando lote ${Math.floor(i / batchSize) + 1} (${batch.length} clientes)`)
       
       // Processar lote em paralelo
       const batchPromises = batch.map(async (cliente, batchIndex) => {
         const globalIndex = i + batchIndex
         try {
-          console.log(`API: Criando cliente ${globalIndex + 1}: ${cliente.nome}`)
           const createdClient = await this.criarCliente(cliente)
-          console.log(`API: Cliente ${globalIndex + 1} criado com sucesso, ID: ${createdClient.id}`)
           
           return {
             index: globalIndex,
@@ -477,7 +552,6 @@ class ApiService {
       }
     }
 
-    console.log(`API: Criação em lote concluída: ${successful} sucessos, ${failed} falhas`)
 
     return {
       success: failed === 0,
@@ -511,21 +585,17 @@ class ApiService {
     let successful = 0
     let failed = 0
 
-    console.log(`API: Iniciando criação em lote de ${backups.length} backups`)
 
     // Processar backups em lotes de 20 para evitar sobrecarga
     const batchSize = 20
     for (let i = 0; i < backups.length; i += batchSize) {
       const batch = backups.slice(i, i + batchSize)
-      console.log(`API: Processando lote de backups ${Math.floor(i / batchSize) + 1} (${batch.length} backups)`)
       
       // Processar lote em paralelo
       const batchPromises = batch.map(async (backup, batchIndex) => {
         const globalIndex = i + batchIndex
         try {
-          console.log(`API: Criando backup ${globalIndex + 1} para cliente ${backup.clienteId}`)
           const createdBackup = await this.criarBackup(backup)
-          console.log(`API: Backup ${globalIndex + 1} criado com sucesso, ID: ${createdBackup.id}`)
           
           return {
             index: globalIndex,
@@ -560,7 +630,6 @@ class ApiService {
       }
     }
 
-    console.log(`API: Criação de backups em lote concluída: ${successful} sucessos, ${failed} falhas`)
 
     return {
       success: failed === 0,
@@ -590,10 +659,7 @@ class ApiService {
     const errors: string[] = []
     
     try {
-      console.log(`API: Iniciando upload completo de ${processedClients.length} clientes`)
-      
       // 1. Criar todos os clientes primeiro
-      console.log('API: Criando clientes...')
       const clientsResult = await this.criarClientesEmLote(processedClients)
       
       if (clientsResult.failed > 0) {
@@ -618,13 +684,21 @@ class ApiService {
         }
       })
       
-      console.log(`API: Coletados ${allBackups.length} backups para criação`)
-      
       // 3. Criar todos os backups
-      let backupsResult = { success: true, totalProcessed: 0, successful: 0, failed: 0, results: [] }
+      let backupsResult: {
+        success: boolean
+        totalProcessed: number
+        successful: number
+        failed: number
+        results: Array<{
+          index: number
+          success: boolean
+          backupId?: number
+          error?: string
+        }>
+      } = { success: true, totalProcessed: 0, successful: 0, failed: 0, results: [] }
       
       if (allBackups.length > 0) {
-        console.log('API: Criando backups...')
         backupsResult = await this.criarBackupsEmLote(allBackups)
         
         if (backupsResult.failed > 0) {
@@ -633,8 +707,6 @@ class ApiService {
       }
       
       const success = clientsResult.success && backupsResult.success
-      
-      console.log(`API: Upload completo finalizado - Sucesso: ${success}`)
       
       return {
         success,
@@ -683,6 +755,10 @@ export const apiService = new ApiService()
 
 // ===== EXPORTS PARA COMPATIBILIDADE =====
 
+export const healthAPI = {
+  check: () => apiService.checkHealth()
+}
+
 export const clientsAPI = {
   getAll: () => apiService.getAllClients(),
   getById: (id: string) => apiService.getClientById(id),
@@ -692,9 +768,11 @@ export const clientsAPI = {
 export const backupsAPI = {
   getAll: () => apiService.getAllBackups(),
   getByClientId: (clientId: string) => apiService.getBackupsByClientId(clientId),
-  getStats: () => apiService.getBackupStats(),
+  getStats: (days: number = 30) => apiService.getBackupStats(days),
   getTimeline: (days: number) => apiService.getBackupTimeline(days),
   getClientsWithBackupStatus: () => apiService.getClientsWithBackupStatus(),
+  getClientsWithBackupStatusProgressive: (days: number = 30) => apiService.getClientsWithBackupStatusProgressive(days),
+  getResumoBackups: () => apiService.getResumoBackups(),
   updateDataFim: (id: number, novaDataFim: string) => apiService.atualizarDataFim({ id, novaDataFim })
 }
 

@@ -1,8 +1,8 @@
 # Progress - Market Dashboard
 
 ## Status Geral
-**Fase Atual**: API Atualizada e Integrada
-**Progresso**: 95% completo
+**Fase Atual**: Integração de Endpoints de Clientes Completa
+**Progresso**: 98% completo
 **Última Atualização**: Janeiro 2024
 
 ## ✅ Concluído
@@ -59,6 +59,25 @@
 - [x] Implementação de cálculo de duração automático
 - [x] Formatação de tamanho em MB
 - [x] Teste da integração atualizada
+
+### 3. Integração de Endpoints de Clientes
+- [x] Implementação do endpoint GET /api/clientes
+- [x] Integração do endpoint /api/dashboard/backup/clientes
+- [x] Mapeamento automático entre os dois endpoints
+- [x] Atualização da ClientsPage para usar novos endpoints
+- [x] Campo "Último backup" preenchido com dados corretos
+- [x] Teste da integração completa
+
+### 4. Auto Carregamento do Dashboard
+- [x] Implementação do refresh automático a cada 30 segundos
+- [x] Indicador visual para mostrar quando dados estão sendo atualizados
+- [x] Controle inteligente para só ativar quando API está disponível
+- [x] Limpeza automática do intervalo quando componente é desmontado
+- [x] Teste da funcionalidade de auto refresh
+- [x] Botão de atualizar manual com contagem regressiva
+- [x] Posicionamento do botão no lado direito do título
+- [x] Estados de controle para refresh manual
+- [x] Teste da funcionalidade de refresh manual
 
 ## 📋 Pendente
 

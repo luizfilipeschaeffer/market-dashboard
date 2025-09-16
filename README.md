@@ -14,10 +14,12 @@ Um dashboard moderno para monitoramento de backups de clientes, construído com 
 
 ## 📦 Instalação
 
+### Instalação Rápida (Windows/macOS/Linux)
+
 1. Clone o repositório:
 ```bash
 git clone <url-do-repositorio>
-cd Market - Automações-dashboard
+cd market-dashboard
 ```
 
 2. Instale as dependências:
@@ -30,15 +32,32 @@ npm install
 npm run dev
 ```
 
-4. Configure as variáveis de ambiente:
+4. Abra [http://localhost:3050](http://localhost:3050) no seu navegador.
+
+### Instalação no Ubuntu 18.04 LTS
+
+Para instalação automatizada no Ubuntu 18.04, use o script de instalação:
+
 ```bash
-# Copie o arquivo de exemplo
+# Instalação completa
+chmod +x scripts/install-ubuntu.sh
+./scripts/install-ubuntu.sh
+
+# Ou instalação rápida
+chmod +x scripts/quick-install-ubuntu.sh
+./scripts/quick-install-ubuntu.sh
+```
+
+Para instruções detalhadas, consulte: [docs/development/UBUNTU_INSTALL.md](docs/development/UBUNTU_INSTALL.md)
+
+### Configuração de Variáveis de Ambiente
+
+```bash
+# Copie o arquivo de exemplo (se existir)
 cp .env.example .env
 
 # Edite o arquivo .env com suas configurações
 ```
-
-5. Abra [http://localhost:5173](http://localhost:5173) no seu navegador.
 
 ## ⚙️ Configuração
 
@@ -64,10 +83,17 @@ VITE_APP_VERSION=1.0.0
 
 ## 🛠️ Scripts Disponíveis
 
-- `npm run dev` - Inicia o servidor de desenvolvimento
+- `npm run dev` - Inicia o servidor de desenvolvimento (porta 3050)
 - `npm run build` - Cria a build de produção
-- `npm run preview` - Visualiza a build de produção
+- `npm run preview` - Visualiza a build de produção (porta 3050)
 - `npm run lint` - Executa o linter
+
+### Scripts Auxiliares (Ubuntu)
+
+- `./start-dev.sh` - Inicia o servidor de desenvolvimento
+- `./start-prod.sh` - Inicia o servidor de produção
+- `./scripts/install-ubuntu.sh` - Instalação completa no Ubuntu
+- `./scripts/quick-install-ubuntu.sh` - Instalação rápida no Ubuntu
 
 ## 🎨 Componentes UI
 

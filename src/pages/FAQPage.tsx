@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PageWrapper } from '@/components/PageWrapper'
+import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -378,12 +378,11 @@ export function FAQPage({ onNavigateToHome, onLoadComplete, initialErrorCode, on
   }
 
   return (
-    <PageWrapper>
+    <PageWrapper pageTitle="FAQ - Códigos de Erro">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">FAQ - Códigos de Erro</h1>
-            <p className="text-muted-foreground mt-2">
+            <p className="text-muted-foreground">
               Encontre soluções para problemas comuns e códigos de erro
             </p>
           </div>

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CheckCircle, XCircle, Clock, TrendingUp, Download, Filter, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 import { PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, ResponsiveContainer } from 'recharts'
-import { api } from '../services/api'
+import { api } from '../../services/api'
 import type { ClientUI } from '@/types/api'
 
 interface ClientBackupModalProps {
@@ -67,34 +67,24 @@ export function ClientBackupModal({ client, isOpen, onClose }: ClientBackupModal
     
     setLoading(true)
     try {
-      console.log('Carregando dados para cliente:', client.client_id)
       
       // Usar diretamente o endpoint /api/dashboard/backup/cliente/{id}
       let allClientBackups: any[] = []
       let timelineData: any[] = []
       
       try {
-        const clientId = parseInt(client.client_id)
-        console.log('Fazendo requisição para /api/dashboard/backup/cliente/' + clientId)
-        
         const [apiBackups, apiTimeline] = await Promise.all([
           api.backups.getByClientId(client.client_id), // Este método já chama listarBackupsPorCliente
           api.backups.getTimeline(parseInt(selectedPeriod))
         ])
         allClientBackups = apiBackups
         timelineData = apiTimeline
-        console.log('Dados carregados da API real:', allClientBackups)
       } catch (apiError) {
         console.error('Erro na API real:', apiError)
         // Não usar dados mock, apenas definir arrays vazios
         allClientBackups = []
         timelineData = []
-        console.log('Usando arrays vazios devido ao erro da API')
       }
-      
-      console.log('Backups carregados:', allClientBackups)
-      console.log('Quantidade de backups carregados:', allClientBackups.length)
-      console.log('Timeline data:', timelineData)
       
       // Filtrar backups pelo período selecionado
       const days = parseInt(selectedPeriod)
@@ -105,19 +95,13 @@ export function ClientBackupModal({ client, isOpen, onClose }: ClientBackupModal
       startDate.setHours(0, 0, 0, 0) // 00:00:00
       endDate.setHours(23, 59, 59, 999) // 23:59:59.999
       
-      console.log('Filtrando backups para período:', days, 'dias')
-      console.log('Data início (ajustada):', startDate)
-      console.log('Data fim (ajustada):', endDate)
       
       const clientBackups = allClientBackups.filter((backup: any) => {
         const backupDate = new Date(backup.date)
         const isInRange = backupDate >= startDate && backupDate <= endDate
-        console.log('Backup:', backup.date, 'está no período?', isInRange)
-        console.log('Backup date:', backupDate, 'vs startDate:', startDate, 'vs endDate:', endDate)
         return isInRange
       })
       
-      console.log('Backups após filtro de período:', clientBackups.length)
       
       // Calcular estatísticas reais baseadas no período filtrado
       const successful = clientBackups.filter((b: any) => b.status === 'success').length
@@ -125,7 +109,6 @@ export function ClientBackupModal({ client, isOpen, onClose }: ClientBackupModal
       const total = clientBackups.length
       const successRate = total > 0 ? (successful / total) * 100 : 0
       
-      console.log('Estatísticas calculadas:', { successful, failed, total, successRate })
       
       setBackupStats({
         successful,

@@ -4,10 +4,10 @@ import { BackupDashboard } from '@/pages/BackupDashboard'
 import { ClientsPage } from '@/pages/ClientsPage'
 import { SettingsPage } from '@/pages/SettingsPage'
 import { FAQPage } from '@/pages/FAQPage'
-import { Sidebar } from '@/components/Sidebar'
-import { TopBar } from '@/components/TopBar'
+import { AppSidebar } from '@/components/AppSidebar'
 import { SplashScreen } from '@/components/SplashScreen'
 import { TransitionSplash } from '@/components/TransitionSplash'
+import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 
 type Page = 'home' | 'backups' | 'clients' | 'settings' | 'faq'
 
@@ -120,14 +120,14 @@ export default function App() {
     setInitialErrorCode(null)
   }
 
+
   return (
     <div className="min-h-screen bg-background">
       {isLoading ? (
         <SplashScreen onComplete={handleSplashComplete} />
       ) : (
-        <>
-          {/* Sidebar */}
-          <Sidebar
+        <SidebarProvider>
+          <AppSidebar
             currentPage={currentPage}
             onNavigateToHome={handleNavigateToHome}
             onNavigateToBackups={handleNavigateToBackups}
@@ -136,21 +136,19 @@ export default function App() {
             onNavigateToFAQ={handleNavigateToFAQ}
           />
           
-          {/* Main Content */}
-          <div className="ml-64 flex flex-col min-h-screen">
-            {/* Top Bar */}
-            <TopBar />
-            
+          <SidebarInset>
             {/* Page Content */}
             <main className="flex-1 overflow-auto">
               {currentPage === 'home' && (
-                <HomePage onNavigateToBackups={handleNavigateToBackups} />
+                <HomePage 
+                  onNavigateToBackups={handleNavigateToBackups}
+                  onLoadComplete={handlePageLoadComplete}
+                />
               )}
               
               {currentPage === 'backups' && (
                 <BackupDashboard 
                   onNavigateToHome={handleNavigateToHome}
-                  onLoadStart={handlePageLoadStart}
                   onLoadComplete={handlePageLoadComplete}
                 />
               )}
@@ -179,10 +177,9 @@ export default function App() {
                   onErrorProcessed={handleErrorProcessed}
                 />
               )}
-
             </main>
-          </div>
-        </>
+          </SidebarInset>
+        </SidebarProvider>
       )}
       
       {/* Splash Screen para Transições e Carregamento */}

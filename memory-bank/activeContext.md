@@ -2,15 +2,34 @@
 
 ## Estado Atual
 **Data**: Janeiro 2024
-**Fase**: Gráfico de distribuição de backup atualizado com Material-UI
+**Fase**: Integração completa dos endpoints de clientes implementada
 
 ## Trabalho Concluído
-- **Tarefa Principal**: ✅ Atualizar interface com nova especificação da API
-- **Nova API**: ✅ API atualizada com novos campos e endpoint
-- **Status**: ✅ Integração atualizada e testada
+- **Tarefa Principal**: ✅ Integração dos endpoints de clientes
+- **Endpoint /api/clientes**: ✅ Implementado GET para listar clientes
+- **Endpoint /api/dashboard/backup/clientes**: ✅ Integrado para dados de backup
+- **Status**: ✅ Integração completa e testada
 - **Gráfico de Backup**: ✅ Atualizado para Material-UI com design semicircular
 
 ## Mudanças Recentes
+- **Auto Carregamento do Dashboard**: Implementado refresh automático
+  - Dashboard de Backup atualiza dados a cada 30 segundos automaticamente
+  - Botão de atualizar manual com contagem regressiva (30s)
+  - Indicador visual mostra quando dados estão sendo atualizados
+  - Auto refresh só funciona quando a API está disponível
+  - Recarregamento inteligente que não interfere na navegação do usuário
+  - Botão posicionado no lado direito do título principal
+  - Tamanho fixo (w-32) para manter consistência visual
+- **Interface de Gestão de Clientes**: Atualizada para melhor UX
+  - Removido card de "Clientes Pendentes" (não existe no sistema)
+  - Centralizados os 3 cards restantes com max-width e margin auto
+  - Layout mais limpo e focado nos dados relevantes
+- **Integração de Endpoints de Clientes**: Implementada integração completa
+  - Endpoint GET /api/clientes para listar clientes
+  - Endpoint GET /api/dashboard/backup/clientes para dados de backup
+  - Mapeamento automático entre os dois endpoints
+  - Campo "Último backup" preenchido com dados do segundo endpoint
+  - Combinação inteligente de dados dos dois endpoints
 - **Gráfico de Distribuição de Backup**: Atualizado para Material-UI
   - Implementado gráfico semicircular único centralizado
   - Cores dinâmicas: verde para sucesso, vermelho para falhas
@@ -37,8 +56,27 @@
 3. ✅ Atualizar mapeamentos de dados
 4. ✅ Corrigir componentes para novos campos
 5. ✅ Testar integração com API atualizada
+6. ✅ Implementar integração dos endpoints de clientes
+7. ✅ Mapear dados de backup para campo "Último backup"
 
 ## Implementações Realizadas
+- **Auto Carregamento do Dashboard**:
+  - Implementado useEffect com setInterval para refresh a cada 30 segundos
+  - Adicionado estado `isAutoRefreshing` para controlar indicador visual
+  - Modificada função `loadData` para aceitar parâmetro `isAutoRefresh`
+  - Indicador visual no header mostra quando dados estão sendo atualizados
+  - Auto refresh só ativo quando API está disponível
+  - Limpeza automática do intervalo quando componente é desmontado
+  - Botão de atualizar manual com contagem regressiva
+  - Estados `countdown` e `isManualRefresh` para controle do botão
+  - Função `handleManualRefresh` para refresh manual
+  - Botão posicionado no lado direito do título principal
+- **Integração de Endpoints de Clientes**: 
+  - Implementado endpoint GET `/api/clientes` para listar clientes
+  - Integrado endpoint GET `/api/dashboard/backup/clientes` para dados de backup
+  - Criado método `mapClienteFromAPI` para mapear dados do endpoint de clientes
+  - Atualizado método `getClientsWithBackupStatus` para combinar dados dos dois endpoints
+  - Campo "Último backup" agora preenchido com dados do endpoint de backup
 - **Tipos TypeScript Atualizados**: Adicionados novos campos `dataInicio`, `dataFim`, `tamanhoEmMb`
 - **Novo Endpoint**: Implementado PUT `/api/backups/{id}/data-fim` para atualizar data de fim
 - **Mapeamentos Atualizados**: Corrigidos mapeamentos para usar novos campos da API

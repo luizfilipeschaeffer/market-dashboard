@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-import { PageWrapper } from '@/components/PageWrapper'
+import { PageWrapper } from '@/components/layout/PageWrapper'
 import { 
   ArrowLeft, 
   Save, 
@@ -95,7 +95,7 @@ export function ClientFormPage({ clientId, onNavigateBack, onLoadStart, onLoadCo
     try {
       setSaving(true)
       // Aqui seria implementada a lógica de salvamento
-      console.log('Salvando cliente:', formData)
+      
       
       // Simular salvamento
       await new Promise(resolve => setTimeout(resolve, 1000))
