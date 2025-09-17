@@ -1,0 +1,23 @@
+# Dockerfile simplificado para desenvolvimento
+FROM node:18-alpine
+
+# Definir diretório de trabalho
+WORKDIR /app
+
+# Instalar dependências do sistema
+RUN apk add --no-cache git
+
+# Copiar arquivos de dependências
+COPY package*.json ./
+
+# Instalar dependências
+RUN npm install
+
+# Copiar código fonte
+COPY . .
+
+# Expor porta
+EXPOSE 3050
+
+# Comando para desenvolvimento
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "3050"]
