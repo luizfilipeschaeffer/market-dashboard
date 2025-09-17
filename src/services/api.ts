@@ -90,10 +90,6 @@ class ApiService {
 
   // ===== ENDPOINTS DA API =====
 
-  // GET /api/health - Health check
-  async checkHealth(): Promise<{ status: string; timestamp: number }> {
-    return this.makeRequest('/api/health')
-  }
 
   // GET /api/clientes
   async listarClientes(): Promise<Cliente[]> {
@@ -755,9 +751,6 @@ export const apiService = new ApiService()
 
 // ===== EXPORTS PARA COMPATIBILIDADE =====
 
-export const healthAPI = {
-  check: () => apiService.checkHealth()
-}
 
 export const clientsAPI = {
   getAll: () => apiService.getAllClients(),

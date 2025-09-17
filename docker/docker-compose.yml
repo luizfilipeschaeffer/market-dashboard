@@ -1,28 +1,22 @@
 services:
   # Aplicação principal
-  market-dashboard:
+  market-externo-dashboard-prod:
     build:
       context: ..
       dockerfile: docker/Dockerfile
-    container_name: market-dashboard-app
+    container_name: market-externo-dashboard-prod
     ports:
       - "0.0.0.0:3050:3050"  # Permite acesso externo
     environment:
       - NODE_ENV=production
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   # Serviço de desenvolvimento (opcional)
-  market-dashboard-dev:
+  market-externo-dashboard-dev:
     build:
       context: ..
       dockerfile: docker/Dockerfile.dev
-    container_name: market-dashboard-dev
+    container_name: market-externo-dashboard-dev
     ports:
       - "0.0.0.0:3051:3050"  # Permite acesso externo
     volumes:
@@ -36,4 +30,4 @@ services:
 
 networks:
   default:
-    name: market-dashboard-network
+    name: market-externo-dashboard-network

@@ -80,7 +80,6 @@ docker run -p 3051:3050 -v $(pwd)/..:/app -v /app/node_modules market-dashboard-
 
 - **Produção**: http://localhost:3050 ou http://[SEU_IP]:3050
 - **Desenvolvimento**: http://localhost:3051 ou http://[SEU_IP]:3051
-- **Health Check**: http://localhost:3050/health ou http://[SEU_IP]:3050/health
 
 ### Acesso Externo
 
@@ -98,7 +97,6 @@ A aplicação está configurada para aceitar conexões de qualquer IP (0.0.0.0),
 - Headers de segurança configurados
 - Cache de assets estáticos
 - Suporte a SPA (Single Page Application)
-- Health check endpoint
 
 ### Desenvolvimento
 - Hot reload habilitado

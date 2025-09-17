@@ -45,7 +45,6 @@ docker/
 
 - **Produção**: http://localhost:3050
 - **Desenvolvimento**: http://localhost:3051
-- **Health Check**: http://localhost:3050/health
 
 ## 📖 Documentação Completa
 

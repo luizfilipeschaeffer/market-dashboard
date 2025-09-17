@@ -14,7 +14,6 @@ echo   Aplicacao rodando em:
 echo ========================================
 echo   Local:    http://localhost:3050
 echo   Externo:  http://192.168.60.16:3050
-echo   Health:   http://localhost:3050/health
 echo.
 
 echo Para parar: docker-compose down
