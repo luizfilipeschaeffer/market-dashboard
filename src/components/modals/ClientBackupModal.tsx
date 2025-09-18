@@ -33,6 +33,9 @@ interface BackupRecord {
   size: string
   vacuumExecutado: boolean
   mensagem: string
+  databaseBackup: string
+  caminhoBackup: string
+  ipBackup: string
 }
 
 interface TimeSeriesData {
@@ -127,7 +130,10 @@ export function ClientBackupModal({ client, isOpen, onClose }: ClientBackupModal
         duration: backup.duration,
         size: backup.size,
         vacuumExecutado: backup.vacuumExecutado,
-        mensagem: backup.mensagem || 'N/A'
+        mensagem: backup.mensagem || 'N/A',
+        databaseBackup: backup.databaseBackup || 'N/A',
+        caminhoBackup: backup.caminhoBackup || 'N/A',
+        ipBackup: backup.ipBackup || 'N/A'
       }))
       
       setBackupRecords(backupRecords)
@@ -385,6 +391,9 @@ export function ClientBackupModal({ client, isOpen, onClose }: ClientBackupModal
                       <TableHead>Status</TableHead>
                       <TableHead>Duração</TableHead>
                       <TableHead>Tamanho</TableHead>
+                      <TableHead>Database</TableHead>
+                      <TableHead>Caminho</TableHead>
+                      <TableHead>IP</TableHead>
                       <TableHead>Vacuum</TableHead>
                       <TableHead>Mensagem</TableHead>
                     </TableRow>
@@ -401,6 +410,21 @@ export function ClientBackupModal({ client, isOpen, onClose }: ClientBackupModal
                         </TableCell>
                         <TableCell>{record.duration}</TableCell>
                         <TableCell>{record.size}</TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="truncate" title={record.databaseBackup}>
+                            {record.databaseBackup}
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="truncate" title={record.caminhoBackup}>
+                            {record.caminhoBackup}
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-xs">
+                          <div className="truncate" title={record.ipBackup}>
+                            {record.ipBackup}
+                          </div>
+                        </TableCell>
                         <TableCell>
                           <Badge className={record.vacuumExecutado 
                             ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"

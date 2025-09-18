@@ -21,6 +21,9 @@ export interface Backup {
   dataInicio: string
   dataFim: string
   tamanhoEmMb: number
+  caminhoBackup: string
+  ipBackup: string
+  databaseBackup: string
   cliente: Cliente
 }
 
@@ -29,12 +32,15 @@ export interface Backup {
 export interface BackupRequestDTO {
   clienteId: number
   status: 'SUCESSO' | 'FALHA'
+  databaseBackup: string
+  caminhoBackup: string
+  ipBackup: string
   mensagem?: string
   vacuumExecutado?: boolean
   vacuumDataExecucao?: string
-  dataInicio?: string
-  dataFim?: string
-  tamanhoEmMb?: number
+  dataInicio: string
+  dataFim: string
+  tamanhoEmMb: number
 }
 
 // ===== DTOs DE RESPONSE =====
@@ -62,6 +68,7 @@ export interface ClienteBackupStatusDTO {
   statusUltimoBackup: string
   taxaSucesso: number
   tamanhoEmMb: number
+  databaseBackup: string
 }
 
 export interface BackupHistoricoDTO {
@@ -73,6 +80,9 @@ export interface BackupHistoricoDTO {
   dataInicio: string
   dataFim: string
   tamanhoEmMb: number
+  caminhoBackup: string
+  ipBackup: string
+  databaseBackup: string
 }
 
 // ===== TIPOS DE PARÂMETROS =====
@@ -136,6 +146,9 @@ export interface BackupUI {
   size: string
   vacuumExecutado: boolean
   mensagem: string
+  databaseBackup: string
+  caminhoBackup: string
+  ipBackup: string
 }
 
 export interface BackupStatsUI {

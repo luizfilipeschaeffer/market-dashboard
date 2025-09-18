@@ -2,24 +2,27 @@
 
 ## Estado Atual
 **Data**: Janeiro 2024
-**Fase**: Integração completa dos endpoints de clientes implementada
+**Fase**: Integração atualizada com nova especificação da API OpenAPI 3.1.0
 
 ## Trabalho Concluído
-- **Tarefa Principal**: ✅ Integração dos endpoints de clientes
-- **Endpoint /api/clientes**: ✅ Implementado GET para listar clientes
-- **Endpoint /api/dashboard/backup/clientes**: ✅ Integrado para dados de backup
+- **Tarefa Principal**: ✅ Atualização da integração com nova especificação da API
+- **Nova URL Base**: ✅ Atualizada para https://market-externo-dashboard-api.onrender.com
+- **Novos Campos**: ✅ Adicionados databaseBackup, caminhoBackup, ipBackup
+- **Novos Endpoints**: ✅ Implementado PUT /api/backups/{id} para atualizar informações
+- **Tipos TypeScript**: ✅ Atualizados para refletir mudanças na API
+- **Interface**: ✅ Modal de backup atualizado com novas colunas
 - **Status**: ✅ Integração completa e testada
-- **Gráfico de Backup**: ✅ Atualizado para Material-UI com design semicircular
 
 ## Mudanças Recentes
-- **Auto Carregamento do Dashboard**: Implementado refresh automático
-  - Dashboard de Backup atualiza dados a cada 30 segundos automaticamente
-  - Botão de atualizar manual com contagem regressiva (30s)
-  - Indicador visual mostra quando dados estão sendo atualizados
-  - Auto refresh só funciona quando a API está disponível
-  - Recarregamento inteligente que não interfere na navegação do usuário
-  - Botão posicionado no lado direito do título principal
-  - Tamanho fixo (w-32) para manter consistência visual
+- **Atualização da API OpenAPI 3.1.0**: Implementada integração com nova especificação
+  - Nova URL base: https://market-externo-dashboard-api.onrender.com
+  - Novos campos obrigatórios: databaseBackup, caminhoBackup, ipBackup
+  - Campos de data agora obrigatórios: dataInicio, dataFim
+  - Novo endpoint PUT /api/backups/{id} para atualizar informações
+  - Tipos TypeScript atualizados para refletir mudanças
+  - Modal de backup atualizado com novas colunas
+  - Mapeamento de dados corrigido para novos campos
+  - Testes de integração realizados com sucesso
 - **Interface de Gestão de Clientes**: Atualizada para melhor UX
   - Removido card de "Clientes Pendentes" (não existe no sistema)
   - Centralizados os 3 cards restantes com max-width e margin auto

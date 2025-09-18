@@ -159,6 +159,17 @@ class ApiService {
     })
   }
 
+  // PUT /api/backups/{id}
+  async atualizarInformacoesBackup(id: number, backup: BackupRequestDTO): Promise<void> {
+    await this.makeRequest(`/api/backups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(backup)
+    })
+    
+    // Invalidar cache relacionado
+    this.clearCache()
+  }
+
   // PUT /api/backups/{id}/data-fim
   async atualizarDataFim(params: AtualizarDataFimParams): Promise<void> {
     const queryParams = new URLSearchParams()
@@ -202,9 +213,12 @@ class ApiService {
       date: backupDate, // Usar dataFim se disponível, senão dataInicio
       status: backup.status === 'SUCESSO' ? 'success' : 'failed',
       duration: this.calculateDuration(backup.dataInicio, backup.dataFim),
-      size: backup.tamanhoEmMb ? `${backup.tamanhoEmMb.toFixed(2)} MB` : 'N/A', // Verificar se tamanhoEmMb não é null
-      vacuumExecutado: backup.vacuumExecutado || false, // Garantir que não seja undefined
-      mensagem: backup.mensagem || 'N/A' // Garantir que não seja undefined
+      size: backup.tamanhoEmMb ? `${backup.tamanhoEmMb.toFixed(2)} MB` : 'N/A',
+      vacuumExecutado: backup.vacuumExecutado || false,
+      mensagem: backup.mensagem || 'N/A',
+      databaseBackup: backup.databaseBackup || 'N/A',
+      caminhoBackup: backup.caminhoBackup || 'N/A',
+      ipBackup: backup.ipBackup || 'N/A'
     }
     
     return mappedBackup
@@ -387,7 +401,7 @@ class ApiService {
     }
   }
 
-  async getClientsWithBackupStatus(): Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string }>> {
+  async getClientsWithBackupStatus(): Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string; databaseBackup: string }>> {
     // Primeira requisição: buscar lista de clientes do endpoint /api/clientes
     const clientes = await this.listarClientes()
     
@@ -399,24 +413,26 @@ class ApiService {
       // Encontrar o status de backup correspondente
       const backupStatus = clientesBackupStatus.find(bs => bs.id === cliente.id)
       
-      if (backupStatus) {
-        return {
-          ...this.mapClienteFromAPI(cliente),
-          lastBackup: backupStatus.dataFim || 'N/A',
-          successRate: backupStatus.taxaSucesso,
-          dataInicio: backupStatus.dataInicio,
-          dataFim: backupStatus.dataFim
+        if (backupStatus) {
+          return {
+            ...this.mapClienteFromAPI(cliente),
+            lastBackup: backupStatus.dataFim || 'N/A',
+            successRate: backupStatus.taxaSucesso,
+            dataInicio: backupStatus.dataInicio,
+            dataFim: backupStatus.dataFim,
+            databaseBackup: backupStatus.databaseBackup || 'N/A'
+          }
+        } else {
+          // Se não encontrar status de backup, usar dados básicos do cliente
+          return {
+            ...this.mapClienteFromAPI(cliente),
+            lastBackup: 'N/A',
+            successRate: 0,
+            dataInicio: undefined,
+            dataFim: undefined,
+            databaseBackup: 'N/A'
+          }
         }
-      } else {
-        // Se não encontrar status de backup, usar dados básicos do cliente
-        return {
-          ...this.mapClienteFromAPI(cliente),
-          lastBackup: 'N/A',
-          successRate: 0,
-          dataInicio: undefined,
-          dataFim: undefined
-        }
-      }
     })
     
     return clientesComDetalhes
@@ -425,7 +441,7 @@ class ApiService {
   // Nova função para carregar dados em etapas
   async getClientsWithBackupStatusProgressive(days: number = 30): Promise<{
     clients: ClientUI[],
-    loadBackupData: () => Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string }>>
+    loadBackupData: () => Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string; databaseBackup: string }>>
   }> {
     // Primeira requisição: buscar lista de clientes do endpoint /api/clientes
     const clientes = await this.listarClientes()
@@ -433,7 +449,7 @@ class ApiService {
     const clientsUI = clientes.map(cliente => this.mapClienteFromAPI(cliente))
     
     // Retornar função para carregar dados de backup
-    const loadBackupData = async (): Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string }>> => {
+    const loadBackupData = async (): Promise<Array<ClientUI & { lastBackup: string; successRate: number; dataInicio?: string; dataFim?: string; databaseBackup: string }>> => {
       // Segunda requisição: buscar status de backup dos clientes do endpoint /api/dashboard/backup/clientes com período
       const clientesBackupStatus = await this.listarStatusClientes({ dias: days })
       
@@ -455,7 +471,8 @@ class ApiService {
             lastBackup: backupStatus.dataFim || 'N/A',
             successRate: testSuccessRate,
             dataInicio: backupStatus.dataInicio,
-            dataFim: backupStatus.dataFim
+            dataFim: backupStatus.dataFim,
+            databaseBackup: backupStatus.databaseBackup || 'N/A'
           }
         } else {
           // Se não encontrar status de backup, usar dados básicos do cliente
@@ -464,7 +481,8 @@ class ApiService {
             lastBackup: 'N/A',
             successRate: 0,
             dataInicio: undefined,
-            dataFim: undefined
+            dataFim: undefined,
+            databaseBackup: 'N/A'
           }
         }
       })
@@ -766,6 +784,7 @@ export const backupsAPI = {
   getClientsWithBackupStatus: () => apiService.getClientsWithBackupStatus(),
   getClientsWithBackupStatusProgressive: (days: number = 30) => apiService.getClientsWithBackupStatusProgressive(days),
   getResumoBackups: () => apiService.getResumoBackups(),
+  updateInformacoes: (id: number, backup: BackupRequestDTO) => apiService.atualizarInformacoesBackup(id, backup),
   updateDataFim: (id: number, novaDataFim: string) => apiService.atualizarDataFim({ id, novaDataFim })
 }
 
